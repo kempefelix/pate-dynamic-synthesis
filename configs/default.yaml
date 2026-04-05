@@ -1,39 +1,52 @@
-# Default Experiment Configuration
-# PATE Dynamic Synthesis – Felix Kempe, TU Wien
+# =============================================================================
+# Experiment Configuration – PATE Dynamic Synthesis
+# Felix Kempe, TU Wien
+#
+# Parameters aligned with:
+#   - Papernot et al. (2018): 250 teachers, Laplace scale=20, delta=1e-5
+#   - Maksan (2025): sigma=10 (Gaussian), 250 teachers, Adam lr=1e-3
+# =============================================================================
 
 seed: 42
 device: "auto"
 num_seeds: 5
 
+# --- Dataset ---
 dataset:
   name: "MNIST"
   num_classes: 10
   data_dir: "./data"
 
+# --- Federated Learning ---
 federation:
-  num_teachers: 25
+  num_teachers: 250
   dirichlet_beta: [0.1, 0.5, 1.0]
 
+# --- Teacher Model ---
 teacher:
   architecture: "TeacherCNN"
   epochs: 10
-  batch_size: 64
-  learning_rate: 0.01
-  momentum: 0.9
+  batch_size: 128
+  learning_rate: 0.001
+  optimizer: "adam"
 
+# --- Student Model ---
 student:
   architecture: "TeacherCNN"
-  epochs: 5
-  batch_size: 64
+  epochs: 10
+  batch_size: 128
   learning_rate: 0.001
+  optimizer: "adam"
 
+# --- PATE Aggregation ---
 pate:
-  noise_scale: 150.0
-  use_gaussian: true
-  sigma: 150.0
-  delta: 1e-5
+  mechanism: "gaussian"
+  sigma: 10.0
+  laplace_scale: 20.0
+  delta: 1.0e-5
   epsilon_max: 10.0
 
+# --- Conditional GAN ---
 cgan:
   latent_dim: 100
   num_epochs: 200
@@ -41,16 +54,18 @@ cgan:
   lr_g: 0.0002
   lr_d: 0.0002
   beta1: 0.5
-  image_channels: 1
   feature_maps_g: 64
   feature_maps_d: 64
+  min_samples_to_train: 200
 
+# --- Synthesis ---
 synthesis:
-  strategy: "variant_a"
-  num_rounds: 20
-  samples_per_round: 1000
+  num_rounds: 10
+  samples_per_round: 5000
+
   variant_a:
     alpha: 2.0
+
   variant_b:
     beta: 2.0
     lambda_contrast: 0.3
@@ -58,17 +73,31 @@ synthesis:
     n_base_ratio: 0.7
     n_contrast_ratio: 0.3
 
+# --- Evaluation ---
 evaluation:
   target_accuracy: 0.95
   convergence_threshold: 0.005
-  metrics: ["accuracy", "macro_f1", "epsilon", "teacher_queries", "kl_divergence"]
+  metrics:
+    - accuracy
+    - macro_f1
+    - epsilon
+    - teacher_queries
+    - kl_divergence
+    - per_class_accuracy
 
+# --- Baselines ---
 baselines:
   run_upper_bound: true
   run_classical_pate: true
-  run_static_synthesis: true
 
+# --- Strategies to run ---
+strategies:
+  - "static"
+  - "variant_a"
+  - "variant_b"
+
+# --- Logging ---
 logging:
   save_dir: "./results"
-  save_checkpoints: true
+  save_checkpoints: false
   log_interval: 1

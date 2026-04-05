@@ -58,12 +58,16 @@ def train_model(
     epochs: int,
     lr: float,
     device: torch.device,
+    optimizer_name: str = "adam",
     momentum: float = 0.9,
 ) -> List[float]:
-    """Train a model with standard SGD + NLLLoss."""
+    """Train a model with Adam or SGD + NLLLoss."""
     model.train()
     model.to(device)
-    optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+    if optimizer_name.lower() == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+    else:
+        optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
     criterion = nn.NLLLoss()
     losses = []
 
@@ -162,9 +166,9 @@ def train_teachers(
         train_model(
             model, dataloader,
             epochs=config["teacher"]["epochs"],
-            lr=config["teacher"]["learning_rate"],
+            lr=float(config["teacher"]["learning_rate"]),
             device=device,
-            momentum=config["teacher"]["momentum"],
+            optimizer_name=config["teacher"].get("optimizer", "adam"),
         )
         model.eval()
         model.cpu()
@@ -191,8 +195,10 @@ def train_local_cgans(
 
     for client_id, dataset in enumerate(client_datasets):
         available_classes = client_class_map[client_id]
-        if len(available_classes) == 0:
-            logger.warning(f"Client {client_id} has no data, skipping cGAN training")
+        min_samples = cgan_cfg.get("min_samples_to_train", 200)
+        if len(available_classes) == 0 or len(dataset) < min_samples:
+            logger.warning(f"Client {client_id}: skipping cGAN training "
+                           f"({len(dataset)} samples < {min_samples} minimum)")
             continue
 
         logger.info(f"Training cGAN for Client {client_id} "
@@ -253,7 +259,7 @@ def run_synthesis_loop(
     student.to(device)
 
     # Initialize RDP accountant
-    accountant = RDPAccountant(sigma=pate_cfg["sigma"], delta=pate_cfg["delta"])
+    accountant = RDPAccountant(sigma=float(pate_cfg["sigma"]), delta=float(pate_cfg["delta"]))
 
     # Metrics tracking
     metrics = {
@@ -303,7 +309,7 @@ def run_synthesis_loop(
             teacher_models=teachers,
             data=synthetic_data,
             num_classes=num_classes,
-            sigma=pate_cfg["sigma"],
+            sigma=float(pate_cfg["sigma"]),
             device=device,
         )
 
@@ -329,8 +335,9 @@ def run_synthesis_loop(
         train_model(
             student, student_loader,
             epochs=config["student"]["epochs"],
-            lr=config["student"]["learning_rate"],
+            lr=float(config["student"]["learning_rate"]),
             device=device,
+            optimizer_name=config["student"].get("optimizer", "adam"),
         )
 
         # Evaluate
@@ -389,8 +396,8 @@ def run_upper_bound(
     logger.info("=" * 60)
 
     model = TeacherCNN(num_channels=num_channels, num_classes=num_classes)
-    loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=0)
-    train_model(model, loader, epochs=15, lr=0.01, device=device)
+    loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=0)
+    train_model(model, loader, epochs=15, lr=0.001, device=device, optimizer_name="adam")
     results = evaluate_model(model, test_loader, device, num_classes)
     logger.info(f"Upper Bound: Acc={results['accuracy']:.4f} | F1={results['macro_f1']:.4f}")
     return results
@@ -426,12 +433,12 @@ def run_classical_pate(
         teacher_models=teachers,
         data=public_data,
         num_classes=num_classes,
-        sigma=pate_cfg["sigma"],
+        sigma=float(pate_cfg["sigma"]),
         device=device,
     )
 
     # RDP accounting
-    accountant = RDPAccountant(sigma=pate_cfg["sigma"], delta=pate_cfg["delta"])
+    accountant = RDPAccountant(sigma=float(pate_cfg["sigma"]), delta=float(pate_cfg["delta"]))
     eps = accountant.step_batch(vote_matrix)
 
     # Train student
@@ -439,8 +446,8 @@ def run_classical_pate(
     labeled_dataset = TensorDataset(
         public_data, torch.tensor(pate_labels, dtype=torch.long)
     )
-    student_loader = DataLoader(labeled_dataset, batch_size=64, shuffle=True)
-    train_model(student, student_loader, epochs=10, lr=0.001, device=device)
+    student_loader = DataLoader(labeled_dataset, batch_size=128, shuffle=True)
+    train_model(student, student_loader, epochs=10, lr=0.001, device=device, optimizer_name="adam")
 
     results = evaluate_model(student, test_loader, device, num_classes)
     results["epsilon"] = eps
@@ -580,7 +587,7 @@ def main():
     datasets = [args.dataset] if args.dataset else [config["dataset"]["name"]]
     betas = [args.beta] if args.beta else config["federation"]["dirichlet_beta"]
     seeds = [args.seed] if args.seed else list(range(config["num_seeds"]))
-    strategies = [args.strategy] if args.strategy else ["static", "variant_a", "variant_b"]
+    strategies = [args.strategy] if args.strategy else config.get("strategies", ["static", "variant_a", "variant_b"])
 
     # Output directory
     save_dir = Path(config["logging"]["save_dir"])

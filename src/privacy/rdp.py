@@ -74,8 +74,8 @@ class RDPAccountant:
         delta: float = 1e-5,
         alpha_orders: np.ndarray = None,
     ):
-        self.sigma = sigma
-        self.delta = delta
+        self.sigma = float(sigma)
+        self.delta = float(delta)
 
         if alpha_orders is None:
             # Standard set of alpha orders for RDP optimization
