@@ -57,6 +57,7 @@ class SynthesisCoordinator:
         round_num: int,
         # Variant A params
         alpha: float = 2.0,
+        min_class_ratio: float = 0.30,
         # Variant B params
         beta: float = 2.0,
         lambda_contrast: float = 0.3,
@@ -101,7 +102,7 @@ class SynthesisCoordinator:
             )
             query = build_query_variant_a(
                 confidence_map, self.num_classes, num_samples,
-                self.client_classes, alpha,
+                self.client_classes, alpha, min_class_ratio,
             )
             logger.info(
                 f"Round {round_num}: Variant A | "

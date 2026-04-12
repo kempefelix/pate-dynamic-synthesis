@@ -297,6 +297,7 @@ def run_synthesis_loop(
             num_samples=synth_cfg["samples_per_round"],
             round_num=round_num,
             alpha=synth_cfg.get("variant_a", {}).get("alpha", 2.0),
+            min_class_ratio=synth_cfg.get("variant_a", {}).get("min_class_ratio", 0.30),
             beta=synth_cfg.get("variant_b", {}).get("beta", 2.0),
             lambda_contrast=synth_cfg.get("variant_b", {}).get("lambda_contrast", 0.3),
             top_m=synth_cfg.get("variant_b", {}).get("top_m_confusions", 3),

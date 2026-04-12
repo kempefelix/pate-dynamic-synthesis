@@ -1,11 +1,14 @@
 """
-Variant A: Distribution-Aware Synthesis.
+Variant A: Distribution-Aware Synthesis (Fixed).
 
 Addresses the global class distribution gap caused by Non-IID data.
 Uses the student model's class confidence map as feedback signal
 and applies inverse confidence weighting to oversample underrepresented classes.
 
-Implements Algorithm 2 from Chapter 5 of the thesis.
+FIX: Added smoothing via min_class_ratio to prevent catastrophic forgetting.
+The synthesis distribution is now a blend of uniform and adaptive:
+    w_k = (1 - min_class_ratio) * adaptive_w_k + min_class_ratio * (1/K)
+This ensures every class receives at least some samples each round.
 """
 
 import numpy as np
@@ -20,32 +23,27 @@ def extract_feedback_variant_a(
     num_classes: int,
     device: torch.device,
 ) -> np.ndarray:
-    """Extract the class confidence map (Φ_A) from the student model.
+    """Extract the class confidence map (Phi_A) from the student model.
 
     For each class k, computes the mean maximum prediction probability
     of the student on synthetic samples of that class.
 
-    Corresponds to Equation 5.2 in the thesis:
-        φ_k = (1/|D_syn,k|) Σ max_j p_j(x̃)
-
     Args:
         student: Current student model S^(t-1).
-        synthetic_data: Synthetic images from previous round, shape (N, C, H, W).
-        synthetic_labels: PATE-assigned labels, shape (N,).
+        synthetic_data: Synthetic images from previous round.
+        synthetic_labels: PATE-assigned labels.
         num_classes: Total number of classes K.
         device: Torch device.
 
     Returns:
-        Confidence map Φ_A of shape (K,), values in [0, 1].
+        Confidence map Phi_A of shape (K,), values in [0, 1].
     """
     student.eval()
     confidence_map = np.zeros(num_classes, dtype=np.float64)
 
     with torch.no_grad():
-        # Get student predictions on all synthetic data
         batch_size = 256
         all_max_probs = []
-        all_labels = []
 
         for start in range(0, len(synthetic_data), batch_size):
             end = min(start + batch_size, len(synthetic_data))
@@ -57,13 +55,11 @@ def extract_feedback_variant_a(
 
         all_max_probs = np.concatenate(all_max_probs)
 
-    # Compute mean max confidence per class
     for k in range(num_classes):
         mask = synthetic_labels == k
         if mask.sum() > 0:
             confidence_map[k] = all_max_probs[mask].mean()
         else:
-            # No samples for this class -> confidence = 0 -> will be heavily weighted
             confidence_map[k] = 0.0
 
     return confidence_map
@@ -75,32 +71,41 @@ def build_query_variant_a(
     num_samples: int,
     client_classes: Dict[int, List[int]],
     alpha: float = 2.0,
+    min_class_ratio: float = 0.30,
 ) -> Dict[int, Dict[int, int]]:
-    """Build synthesis queries using inverse confidence weighting.
+    """Build synthesis queries using smoothed inverse confidence weighting.
 
-    Corresponds to Equations 5.3 and 5.4 in the thesis:
-        w_k = (1 - φ_k)^α / Σ_j (1 - φ_j)^α
-        n_k = floor(w_k * N_syn)
+    The synthesis distribution blends adaptive and uniform components:
+        w_k = (1 - min_class_ratio) * adaptive_w_k + min_class_ratio * (1/K)
+
+    This prevents catastrophic forgetting: even well-learned classes
+    receive at least 30% of their uniform share each round.
 
     Args:
-        confidence_map: Φ_A of shape (K,), the class confidence map.
+        confidence_map: Phi_A of shape (K,).
         num_classes: Total number of classes K.
         num_samples: Total synthesis budget N_syn.
         client_classes: Dict mapping client_id -> available classes.
-        alpha: Focusing exponent (α ≥ 1).
+        alpha: Focusing exponent.
+        min_class_ratio: Blend ratio for uniform floor (0.0 = fully adaptive, 1.0 = fully uniform).
 
     Returns:
         Query dict: {client_id: {class_label: num_samples_to_generate}}
     """
-    # Compute inverse confidence weights
+    # Compute inverse confidence weights (adaptive component)
     inv_confidence = (1.0 - confidence_map) ** alpha
-
-    # Normalize to get distribution
     weight_sum = inv_confidence.sum()
     if weight_sum > 0:
-        weights = inv_confidence / weight_sum
+        adaptive_weights = inv_confidence / weight_sum
     else:
-        weights = np.ones(num_classes) / num_classes
+        adaptive_weights = np.ones(num_classes) / num_classes
+
+    # Uniform component
+    uniform_weights = np.ones(num_classes) / num_classes
+
+    # Blend: smooth transition between adaptive and uniform
+    weights = (1.0 - min_class_ratio) * adaptive_weights + min_class_ratio * uniform_weights
+    weights = weights / weights.sum()  # Re-normalize
 
     # Compute per-class sample counts
     samples_per_class = np.floor(weights * num_samples).astype(int)
