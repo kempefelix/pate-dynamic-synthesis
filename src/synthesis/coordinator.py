@@ -133,6 +133,8 @@ class SynthesisCoordinator:
         all_labels = []
 
         for client_id, class_counts in query.items():
+            if client_id not in self.local_cgans:
+                continue
             cgan = self.local_cgans[client_id]
             for class_label, count in class_counts.items():
                 if count <= 0:

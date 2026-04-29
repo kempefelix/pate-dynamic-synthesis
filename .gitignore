@@ -11,3 +11,27 @@ build/
 .DS_Store
 *.log
 wandb/
+
+# Auto-generated SLURM configs (created by run_*.sh scripts)
+configs/main_*.yaml
+configs/cifar_*.yaml
+configs/grid_*.yaml
+
+# Logs (only JSONs are versioned, see decision in thesis Sect. 6.7)
+results/*.log
+results/main/*.log
+results/cifar/*.log
+results/grid_search/*.log
+
+# Python cache
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Datasets (downloaded automatically by torchvision)
+data/MNIST/
+data/cifar-10-batches-py/
+data/cifar-10-python.tar.gz
+run_all_mnist.sh
+run_gpu.sh

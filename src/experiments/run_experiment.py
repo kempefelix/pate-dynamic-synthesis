@@ -605,7 +605,20 @@ def main():
                 all_experiments.append(results)
 
                 # Save intermediate results
-                result_file = save_dir / f"{dataset_name}_beta{beta}_seed{seed}.json"
+                # Build unique filename per run
+                sigma = config.get("pate", {}).get("sigma", "")
+                strat_str = "_".join(strategies)
+                va = config.get("synthesis", {}).get("variant_a", {})
+                vb = config.get("synthesis", {}).get("variant_b", {})
+                if "variant_a" in strategies and len(strategies) == 1:
+                    param_str = f"_varA_s{sigma}_a{va.get('alpha','')}_m{va.get('min_class_ratio','')}"
+                elif "variant_b" in strategies and len(strategies) == 1:
+                    param_str = f"_varB_s{sigma}_b{vb.get('beta','')}_l{vb.get('lambda_contrast','')}"
+                elif "static" in strategies and len(strategies) == 1:
+                    param_str = f"_static_s{sigma}"
+                else:
+                    param_str = f"_s{sigma}_{strat_str}"
+                result_file = save_dir / f"{dataset_name}_beta{beta}_seed{seed}{param_str}.json"
                 with open(result_file, "w") as f:
                     json.dump(results, f, indent=2, default=str)
                 logger.info(f"Results saved to {result_file}")
