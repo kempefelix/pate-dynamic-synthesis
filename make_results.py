@@ -476,26 +476,26 @@ def fig_savings(runs, ds, fname, fig_dir):
     plt.close(fig)
 
 
-def fig_per_class(runs, ds, fname, fig_dir):
-    fig, axes = plt.subplots(1, 3, figsize=(15.5, 4.0))
-    for ax, beta in zip(axes, BETAS):
-        mat = []
-        for cfg in CONFIG_ORDER:
-            cell = runs[ds][beta][cfg]
-            pc = np.array([blk["per_class_accuracy"][-1]
-                           for blk in cell.values()]).mean(axis=0)
-            mat.append(pc)
-        mat = np.array(mat)
-        im = ax.imshow(mat, aspect="auto", cmap="viridis", vmin=0, vmax=1)
-        ax.set_xticks(range(NUM_CLASSES))
-        ax.set_yticks(range(len(CONFIG_ORDER)))
-        ax.set_yticklabels(CONFIG_ORDER, fontsize=8)
-        ax.set_title(f"$\\beta = {beta}$")
+def fig_per_class(runs, ds, fname, fig_dir, beta=0.5, cfgs=("Static", "A2", "B2")):
+    panel_color = {"Static": "#404040", "A2": "#FF7F0E", "B2": "#9C27B0"}
+    fig, axes = plt.subplots(1, len(cfgs), figsize=(15, 4.5), sharey=True)
+    x = np.arange(NUM_CLASSES)
+    for ax, cfg in zip(axes, cfgs):
+        cell = runs[ds][beta][cfg]
+        pc = np.array([blk["per_class_accuracy"][-1]
+                       for blk in cell.values()]).mean(axis=0) * 100
+        bars = ax.bar(x, pc, color=panel_color.get(cfg, "#404040"))
+        for b, v in zip(bars, pc):
+            ax.annotate(f"{v:.0f}", (b.get_x() + b.get_width() / 2, v),
+                        ha="center", va="bottom", fontsize=8)
+        label = "Static Baseline" if cfg == "Static" else CONFIG_LABEL[cfg]
+        ax.set_title(label)
+        ax.set_xticks(x)
         ax.set_xlabel("Class")
-    fig.colorbar(im, ax=axes, fraction=0.02, pad=0.01,
-                 label="final per-class accuracy")
-    fig.suptitle(f"{ds}: final per-class accuracy per configuration "
-                 f"(mean over seeds)", y=1.04)
+        ax.set_ylim(0, 100)
+    axes[0].set_ylabel("Per-class accuracy [%]")
+    fig.suptitle(f"Per-class accuracy ($\\beta = {beta}$, $\\sigma = 40$)", y=1.02)
+    fig.tight_layout()
     fig.savefig(fig_dir / fname, bbox_inches="tight")
     plt.close(fig)
 
