@@ -27,7 +27,7 @@ plt.rcParams.update({
     "legend.fontsize": 10,
     "lines.linewidth": 2,
     "savefig.dpi": 300,
-    "savefig.bbox_inches": "tight",
+    "savefig.bbox": "tight",
 })
 
 STRATEGY_COLORS = {

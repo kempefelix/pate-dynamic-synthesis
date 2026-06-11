@@ -26,7 +26,12 @@ def pate_aggregate_votes(
         sigma: Gaussian noise standard deviation. 0 = no noise.
 
     Returns:
-        Tuple of (winning_class, vote_counts) where vote_counts includes noise.
+        Tuple of (winning_class, vote_counts). winning_class is the argmax
+        of the (noisy, if sigma > 0) vote vector. vote_counts is the vote
+        vector on which the argmax was taken, i.e. it INCLUDES the Gaussian
+        noise when sigma > 0. Callers that need the raw (pre-noise) counts
+        must recompute them from teacher_predictions (as pate_label_dataset
+        does for its vote_matrix/consensus outputs).
     """
     # Count votes per class
     vote_counts = np.zeros(num_classes, dtype=np.float64)

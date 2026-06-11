@@ -17,8 +17,10 @@ def compute_rdp_gnmax(
 ) -> np.ndarray:
     """Compute RDP guarantee for a single GNMax query.
 
-    For the Gaussian Noisy Max mechanism, the RDP cost depends on
-    the vote margin (consensus) among teachers.
+    This implementation uses the data-independent Gaussian-mechanism
+    bound: the per-query RDP cost is constant and does NOT depend on
+    the vote margin (consensus) among teachers. The data-dependent
+    GNMax analysis of Papernot et al. (2018) is deliberately not used.
 
     Args:
         vote_counts: Raw vote counts of shape (num_classes,).
@@ -28,12 +30,15 @@ def compute_rdp_gnmax(
     Returns:
         RDP epsilon values for each alpha order.
     """
-    # Sensitivity of the vote count is 1 (changing one teacher changes
-    # one vote by at most 1)
-    sensitivity = 1.0
+    # L2-sensitivity of the vote histogram is sqrt(2): changing one
+    # record moves one teacher's vote from one class to another, i.e.
+    # the histogram changes by -1 in one coordinate and +1 in another
+    # (||(-1, +1)||_2 = sqrt(2); cf. Papernot et al. 2018, Prop. 8).
+    sensitivity = math.sqrt(2)
 
-    # For the Gaussian mechanism applied to argmax:
+    # For the Gaussian mechanism applied to the vote histogram:
     # epsilon(alpha) = alpha * sensitivity^2 / (2 * sigma^2)
+    #               = alpha / sigma^2          (with sensitivity = sqrt(2))
     rdp_eps = alpha_orders * (sensitivity ** 2) / (2.0 * sigma ** 2)
 
     return rdp_eps

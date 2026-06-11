@@ -475,6 +475,14 @@ def run_single_experiment(
     # Setup
     np.random.seed(seed)
     torch.manual_seed(seed)
+    # --- Full determinism (G6): also fix GPU RNGs and force deterministic
+    # cuDNN/CUDA kernels. Without these settings, GPU runs with identical
+    # seeds can diverge by several percentage points (non-deterministic
+    # cuDNN convolution algorithms and CUDA atomics).
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True, warn_only=True)
     device = get_device(config.get("device", "auto"))
     logger.info(f"\n{'='*60}")
     logger.info(f"EXPERIMENT: {dataset_name} | β={beta} | seed={seed} | device={device}")

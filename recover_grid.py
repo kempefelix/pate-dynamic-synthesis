@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rekonstruiert die Grid-Search-Ergebnisse aus den SLURM-.log-Dateien."""
+"""Reconstructs the grid search results from the SLURM .log files."""
 import re, json, glob, os
 
 LOG_DIR = "results/grid_search"
@@ -58,7 +58,7 @@ for key, (_, jobid, rounds, meta) in sorted(best.items()):
     rows.append((sigma, strat, a or b or "-", mcr or lc or "-",
                  fr["accuracy"], fr["epsilon"], fr["teacher_queries"], len(rs)))
 
-print(f"\n{len(best)} Konfigurationen rekonstruiert (von 57 erwartet).\n")
+print(f"\n{len(best)} configurations reconstructed (of 57 expected).\n")
 print(f"{'sig':>4} {'strat':<6} {'p1':>4} {'p2':>4} {'acc':>7} {'eps':>7} {'Q':>7} {'#R':>3}")
 for r in sorted(rows, key=lambda x:(x[0], x[1])):
     print(f"{r[0]:>4} {r[1]:<6} {str(r[2]):>4} {str(r[3]):>4} "
@@ -66,7 +66,7 @@ for r in sorted(rows, key=lambda x:(x[0], x[1])):
 
 for sig in ("10","20","40"):
     eps = [r[5] for r in rows if r[0]==sig]
-    if eps: print(f"\nsigma={sig}: eps-Bereich {min(eps):.1f}-{max(eps):.1f}")
+    if eps: print(f"\nsigma={sig}: eps range {min(eps):.1f}-{max(eps):.1f}")
 stat40 = [r for r in rows if r[0]=="40" and r[1]=="static"]
 if stat40:
     sa = stat40[0][4]
@@ -74,5 +74,5 @@ if stat40:
         cand = [r for r in rows if r[0]=="40" and r[1]==strat]
         if cand:
             bestr = max(cand, key=lambda x:x[4])
-            print(f"beste {strat}@sig40: acc={bestr[4]:.4f} -> "
+            print(f"best {strat}@sig40: acc={bestr[4]:.4f} -> "
                   f"Delta vs static({sa:.4f}) = {100*(bestr[4]-sa):+.2f}%")

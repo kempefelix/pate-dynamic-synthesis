@@ -48,25 +48,3 @@ class TeacherCNN(nn.Module):
         x = self.dropout2(x)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
-
-    def predict_proba(self, x: torch.Tensor) -> torch.Tensor:
-        """Return class probabilities (softmax) instead of log-softmax."""
-        self.eval()
-        with torch.no_grad():
-            logits = self.fc2(
-                self.dropout2(
-                    F.relu(
-                        self.fc1(
-                            torch.flatten(
-                                self.dropout1(
-                                    F.max_pool2d(
-                                        F.relu(self.conv2(F.relu(self.conv1(x)))), 2
-                                    )
-                                ),
-                                1,
-                            )
-                        )
-                    )
-                )
-            )
-        return F.softmax(logits, dim=1)
