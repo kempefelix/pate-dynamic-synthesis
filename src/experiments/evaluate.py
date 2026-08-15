@@ -1,6 +1,14 @@
 """
 Evaluation and Visualization Utilities.
 
+*** SUPERSEDED — DO NOT USE FOR THE REPORTED RESULTS ***
+
+This module aggregated the three configurations of a variant as if they were
+seeds, which is not the aggregation reported in the thesis. It is retained only
+for provenance. The canonical evaluation — every table, every t-test, every
+epsilon saving and all eight figures of Chapter 7 — is produced by
+`make_results.py` in the repository root.
+
 Computes aggregated metrics across seeds, generates Pareto plots,
 accuracy curves, and KL-divergence analysis for the thesis figures.
 """

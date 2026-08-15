@@ -1,6 +1,14 @@
 """
 Generate Grid Search Configurations and SLURM Submission Script.
 
+*** SUPERSEDED — NOT USED FOR ANY REPORTED RESULT ***
+
+An early draft of a different and larger grid (note sigma=80 and the
+samples_per_round sweep below, neither of which appears in the thesis). The
+sensitivity analysis actually reported in Section 7.3 was submitted by
+`run_grid_search.sh` (57 jobs, sigma in {10, 20, 40}). Retained for provenance
+only.
+
 Grid search over:
   - sigma:            {10, 20, 40, 80}
   - alpha (Var A):    {1.0, 2.0, 4.0}

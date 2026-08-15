@@ -21,6 +21,25 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+`pip install` resolves whichever CUDA build the current PyTorch release ships on PyPI. The
+reported runs used CUDA 11.8 (see below); if a specific CUDA toolchain is required, install
+PyTorch from the matching index instead of relying on the PyPI default.
+
+### Environment of the reported runs
+
+The results reported in the thesis were produced on the Vienna Scientific Cluster
+(VSC-5, partition `zen3_0512_a100x2`) with **Python 3.11, CUDA 11.8 and PyTorch 2.x**,
+loaded through the cluster's environment-module system.
+
+`requirements.txt` pins **lower bounds only**. The exact package versions used for the
+reported runs were not recorded, so a fresh installation today will generally resolve to
+newer releases than the ones originally used. A re-run is therefore expected to be
+statistically equivalent to the committed results but not bit-identical — see the note on
+GPU/cuDNN non-determinism under *Re-running the experiments* below.
+
+If you need an exactly pinned environment, generate one from your own installation with
+`pip freeze > requirements-lock.txt`; no such lock file from the original runs exists.
+
 ## Quick Start (smoke test)
 
 ```bash
@@ -29,6 +48,9 @@ pip install -r requirements.txt
 python -m src.experiments.run_experiment --config configs/default.yaml \
     --dataset MNIST --beta 0.1 --strategy variant_a --seed 0
 ```
+
+The first run of any command downloads MNIST and CIFAR-10 through `torchvision` and
+therefore requires outbound internet access.
 
 ## Reproducing the evaluation
 
@@ -42,6 +64,10 @@ python3 recompute_epsilon.py
 python3 make_results.py --fig-dir figures
 ```
 
+On Windows, set `PYTHONIOENCODING=utf-8` before running `make_results.py`. The script prints
+Greek letters (ε, β, σ, Δ₂) and an unmodified `cp1252` console aborts at the first such line
+with a `UnicodeEncodeError`.
+
 `make_results.py` is the canonical evaluation pipeline; the older
 `src/experiments/evaluate.py` aggregated the three configurations of each
 variant as if they were seeds and is superseded.
@@ -52,9 +78,21 @@ The reported results use **sigma=40, epsilon_max=100**, set by the SLURM
 submission scripts (NOT `configs/default.yaml`). On a GPU cluster:
 
 ```bash
-bash run_main_experiments.sh   # 224 main runs (MNIST + CIFAR-10)
+bash run_main_experiments.sh   # 120 MNIST jobs  -> results/main
+bash run_cifar_experiments.sh  # 120 CIFAR-10 jobs -> results/cifar  (RECONSTRUCTED, see below)
 bash run_grid_search.sh        # 57 sensitivity-analysis runs
 ```
+
+Of the 240 submitted jobs, 224 completed successfully (112 per dataset); the
+remaining 16 aborted because a client received zero samples under the extreme
+Dirichlet split (MNIST beta=0.1 seed 1, CIFAR-10 beta=0.1 seed 4).
+
+`run_cifar_experiments.sh` is a **reconstruction**, not the script that produced
+the committed CIFAR-10 results — the original was excluded by `.gitignore` and
+is not recoverable. It reproduces the configuration matrix documented in the
+thesis (Table 7.2, Section 7.6); the per-run YAMLs were never persisted, since
+`run_experiment.py` records only `{dataset, beta, seed}` in each result JSON.
+See the header of that file for what is and is not verifiable.
 
 GPU/cuDNN nondeterminism makes a re-run statistically equivalent but not
 bit-identical to the committed `results/` (up to ~6 pp on identical configs).
@@ -92,3 +130,13 @@ and figures exactly.
 ## Acknowledgments
 
 The PATE aggregation logic and teacher CNN architecture are adapted from the NEWSROOM/Saferlearn framework (Romain Ferrari et al., Thales Research & Technology).
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
+
+Two components are adapted from the preliminary work of Maksan (2026), which originates from the
+NEWSROOM/Saferlearn context: the PATE aggregation and the teacher CNN architecture. The MIT grant
+is made by the copyright holder of this repository and does not purport to relicense material
+whose rights are held elsewhere; anyone reusing those two components should confirm their terms
+with the original authors.

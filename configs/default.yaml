@@ -3,8 +3,11 @@
 # Felix Kempe, TU Wien
 #
 # Parameters aligned with:
-#   - Papernot et al. (2018): 250 teachers, Laplace scale=20, delta=1e-5
-#   - Maksan (2026): sigma=10 (Gaussian), 250 teachers, Adam lr=1e-3
+#   - Papernot et al. (2018): 250 teachers, Gaussian mechanism (GNMax), delta=1e-5
+#     (the Laplace/LNMax mechanism belongs to Papernot et al. 2017, not to 2018)
+#   - Maksan (2026): sigma=10 (Gaussian), 250 teachers. NOTE: Maksan trains the
+#     teachers with SGD (lr=0.01); the Adam lr=1e-3 used here was determined in
+#     preliminary experiments for this thesis and is NOT adopted from that work.
 # =============================================================================
 
 seed: 42

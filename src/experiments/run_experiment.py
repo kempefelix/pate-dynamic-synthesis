@@ -595,7 +595,7 @@ def main():
     # Determine experiment parameters
     datasets = [args.dataset] if args.dataset else [config["dataset"]["name"]]
     betas = [args.beta] if args.beta else config["federation"]["dirichlet_beta"]
-    seeds = [args.seed] if args.seed else list(range(config["num_seeds"]))
+    seeds = [args.seed] if args.seed is not None else list(range(config["num_seeds"]))
     strategies = [args.strategy] if args.strategy else config.get("strategies", ["static", "variant_a", "variant_b"])
 
     # Output directory

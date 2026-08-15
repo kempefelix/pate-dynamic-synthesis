@@ -1,5 +1,16 @@
 #!/usr/bin/env python3
-"""Reconstructs the grid search results from the SLURM .log files."""
+"""Reconstructs the grid search results from the SLURM .log files.
+
+*** ONE-OFF RECOVERY SCRIPT — CANNOT BE RE-RUN ***
+
+This script rebuilt the grid search json results from 
+the SLURM logs, which are themselves not part of the supplement. It therefore
+cannot be executed against this repository. The files it produced
+(`results/grid_search/*.json`) carry a REDUCED FIELD SET — round, accuracy,
+macro_f1, epsilon and teacher_queries only, with no per_class_accuracy and no
+synthesis_distribution. Anything in Section 7.3 rests on these reconstructed
+files; see the disclosure in Section 6.7 of the thesis.
+"""
 import re, json, glob, os
 
 LOG_DIR = "results/grid_search"
